@@ -1,4 +1,5 @@
 defmodule Mix.Tasks.StartGame do
+  require Logger
   use Mix.Task
 
   @moduledoc """
@@ -15,6 +16,7 @@ defmodule Mix.Tasks.StartGame do
 
   """
   def run(_) do
+    Logger.configure [level: :info]
     players = [o: %Client.Random{}, x: %Client.Random{}]
     game = Game.play Game.new(players)
     case game do

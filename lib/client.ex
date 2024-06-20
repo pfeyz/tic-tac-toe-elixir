@@ -38,11 +38,13 @@ defmodule Client.UDP do
 end
 
 defimpl Client, for: Client.UDP do
+  require Logger
+
   def move(_, _, _) do
     GenServer.cast Client.UDPServer, {:get, self()}
     receive do
       [player: _, move: move] ->
-        IO.puts "[UDP] got #{inspect move}"
+        Logger.debug "Client.UDP got #{inspect move}"
         move
     end
   end
@@ -51,6 +53,7 @@ end
 
 
 defmodule Client.UDPServer do
+  require Logger
   use GenServer
 
   defmodule ServerState do
@@ -71,6 +74,7 @@ defmodule Client.UDPServer do
 
   def init(%{port: port}) do
     {:ok, _socket} = :gen_udp.open(port, [:binary, active: true])
+    Logger.info "udp server listening on port #{port}"
     {:ok, %ServerState{}}
   end
 
