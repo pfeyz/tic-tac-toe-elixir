@@ -2,7 +2,7 @@ defmodule Game do
   require Logger
   alias Game.State
 
-  @type move :: {[0..2], [0..2]}
+  @type move :: [0..8]
   @type t :: Game.State.t()
 
   @spec new(Game.State.player_list) :: Game.State
@@ -13,8 +13,8 @@ defmodule Game do
                                board: Board.new}
 
   @spec play_turn(t, move) :: {:ok, t}, {:end, t} | {:error, String.t()}
-  def play_turn(game, {x, y}) do
-    case make_move game, {x, y} do
+  def play_turn(game, move) do
+    case make_move game, move do
       {:error, error} -> {:error, error}
       {:ok, game} -> case Game.goal? game do
                        {:winner, winner} -> {:end, %{game | winner: winner}}
@@ -28,24 +28,24 @@ defmodule Game do
   def play(game) do
     turn = game.current_turn
     player = game.players[turn]
-    Logger.info "waiting for move from player #{turn}"
+    Logger.debug "waiting for move from player #{turn}"
     case Client.move player, turn, game do
 
-      {x, y} = move when is_integer(x) and is_integer(y) ->
-        case play_turn game, {x, y} do
+      move when is_integer(move) ->
+        case play_turn game, move do
           {:error, error} ->
-            Logger.info "got unpermitted move #{inspect move} from #{turn}: #{error}"
+            Logger.debug "got unpermitted move #{inspect move} from #{turn}: \"#{error}\""
             Client.scold player, turn, move, error
             play game
           {:ok, game} ->
-            Logger.info "got legal move #{inspect move} from #{turn}"
-            Board.inspect game.board
+            Logger.debug "got legal move #{inspect move} from #{turn}"
+            # Board.inspect game.board
             play game
           {:end, game} -> {:ok, game}
         end
 
       move ->
-        IO.puts "[Game] got illegal move #{inspect move} from #{turn}: #{move}"
+        Logger.debug("got illegal move #{inspect move} from #{turn}: #{move}")
         Client.scold(player, turn, move, "invalid move")
         play game
 
@@ -53,11 +53,11 @@ defmodule Game do
   end
 
   @spec make_move(t, move) :: {:ok, t} | {:error, String.t()}
-  def make_move(game, {x, y}) do
-    case Board.put game.board, {x, y}, game.current_turn do
+  def make_move(game, move) do
+    case Board.put game.board, move, game.current_turn do
       {:error, message} -> {:error, message}
       {:ok, board} -> {:ok, game
-      |> Map.put(:moves, [{x, y} | game.moves])
+      |> Map.put(:moves, [move | game.moves])
       |> Map.put(:board, board)
       |> Map.put(:current_turn, if game.current_turn == :x do :o else :x end)
       }

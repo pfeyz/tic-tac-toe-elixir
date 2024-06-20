@@ -63,27 +63,21 @@ defmodule Board do
   end
 
   @doc "Places an :x or :o in the grid coordinate {x, y}"
-  @spec put(board, {Integer, Integer}, :x | :o) :: {:ok, board} | {:error, String.t()}
+  @spec put(board, Integer, :x | :o) :: {:ok, board} | {:error, String.t()}
   def put(_, _, value) when value not in [:x, :o] do
     {:error, "player value must be x or o"}
   end
 
-  def put(_, {x, y}, _) when x < 0 or x > 2 or y < 0 or y > 2 do
+  def put(_, spot, _) when spot < 0 or spot > 8 do
     {:error, "spot is out of range"}
   end
 
-  def put(board, {x, y}, value) do
-    spot = y * 3 + x
+  def put(board, spot, value) do
      if Map.get(board, spot) != nil do
       {:error, "spot already occupied"}
     else
       {:ok, %{board | spot => value}}
     end
-  end
-
-  def put!(board, {x, y}, value) do
-    {:ok, board} = put(board, {x, y}, value)
-    board
   end
 
   @doc "Prints out the board as an ascii grid"
