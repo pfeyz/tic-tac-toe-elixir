@@ -6,13 +6,21 @@ defprotocol Client do
   def scold(client, turn, move, error)
 end
 
-defmodule Client.Random, do: defstruct []
+defmodule Client.Random do
+  defstruct []
+  def new(), do: %Client.Random{}
+end
+
 defimpl Client, for: Client.Random do
   def move(_client, _name, _game), do: Enum.random(0..8)
   def scold(_, _, _, _) do end
 end
 
-defmodule Client.Terminal, do: defstruct []
+defmodule Client.Terminal do
+  defstruct []
+  def new(), do: %Client.Terminal{}
+end
+
 defimpl Client, for: Client.Terminal do
   def move(_client, name, game) do
     Game.State.inspect game
