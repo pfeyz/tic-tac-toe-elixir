@@ -1,4 +1,9 @@
 defprotocol Client do
+
+  defmodule Behavior do
+    @type t :: Struct
+    @callback new() :: t
+  end
   @spec move(t, String, State) :: Integer
   def move(client, name, game)
 
@@ -7,6 +12,8 @@ defprotocol Client do
 end
 
 defmodule Client.Random do
+  @behaviour Client.Behavior
+
   defstruct []
   def new(), do: %Client.Random{}
 end
@@ -17,6 +24,8 @@ defimpl Client, for: Client.Random do
 end
 
 defmodule Client.Terminal do
+  @behaviour Client.Behavior
+
   defstruct []
   def new(), do: %Client.Terminal{}
 end
@@ -34,6 +43,8 @@ defimpl Client, for: Client.Terminal do
 end
 
 defmodule Client.UDP do
+  @behaviour Client.Behavior
+
   defstruct []
 
   def new(port \\ 8000) do
