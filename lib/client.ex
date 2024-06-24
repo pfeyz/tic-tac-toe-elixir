@@ -1,14 +1,37 @@
 defprotocol Client do
-
   defmodule Behavior do
     @type t :: Struct
     @callback new() :: t
   end
+
   @spec move(t, String, State) :: Integer
   def move(client, name, game)
 
   @spec scold(t, Integer, Integer, String) :: nil
   def scold(client, turn, move, error)
+end
+
+defmodule Client.Deterministic do
+  @moduledoc """
+  A client for use in testing that makes a pre-determined static set of moves.
+  """
+
+  defstruct [:agent]
+
+  def new, do: %Client.Deterministic{}
+
+  def build(moves) do
+    {:ok, agent} = Agent.start_link(fn -> moves end)
+    %Client.Deterministic{agent: agent}
+  end
+
+end
+
+defimpl Client, for: Client.Deterministic do
+  def move(client, _, _) do
+    Agent.get_and_update(client.agent, fn [move | rest] -> {move, rest} end)
+  end
+  def scold(_, _, _, _) do end
 end
 
 defmodule Client.Random do

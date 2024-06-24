@@ -80,6 +80,12 @@ defmodule Board do
     end
   end
 
+  def to_list(board, replace_nil \\ nil) do
+    for move <- Map.values(board) do
+      if is_nil(move), do: replace_nil, else: move
+    end
+  end
+
   @doc "Prints out the board as an ascii grid"
   @spec inspect(board) :: nil
   def inspect(board) do
