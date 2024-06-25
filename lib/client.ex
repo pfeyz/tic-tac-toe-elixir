@@ -1,145 +1,100 @@
-defprotocol Client do
-  defmodule Behavior do
-    @type t :: Struct
-    @callback new() :: t
+defmodule Client do
+  @type client_state :: Struct
+  @type game_state :: Struct
+  @type player_name :: :x | :o
+
+  @callback init(Any, player_name) :: client_state
+  @callback move(client_state, player_name, game_state) :: Integer
+  @callback ok(client_state, game_state) :: nil
+  @callback error(client_state, player_name, String.t()) :: nil
+  @callback finish(client_state, player_name, game_state) :: nil
+
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour Client
+      def init(_opts, _name) do nil end
+      def ok(_state, _game) do end
+      def error(_state, _name, _message) do end
+      def finish(_state, _winner, _game) do end
+
+      defoverridable init: 2
+      defoverridable ok: 2
+      defoverridable error: 3
+      defoverridable finish: 3
+    end
   end
-
-  @spec move(t, String, State) :: Integer
-  def move(client, name, game)
-
-  @spec scold(t, Integer, Integer, String) :: nil
-  def scold(client, turn, move, error)
 end
 
-defmodule Client.Deterministic do
-  @moduledoc """
-  A client for use in testing that makes a pre-determined static set of moves.
-  """
-
-  defstruct [:agent]
-
-  def new, do: %Client.Deterministic{}
-
-  def build(moves) do
-    {:ok, agent} = Agent.start_link(fn -> moves end)
-    %Client.Deterministic{agent: agent}
-  end
-
-end
-
-defimpl Client, for: Client.Deterministic do
-  def move(client, _, _) do
-    Agent.get_and_update(client.agent, fn [move | rest] -> {move, rest} end)
-  end
-  def scold(_, _, _, _) do end
-end
 
 defmodule Client.Random do
-  @behaviour Client.Behavior
+  use Client
 
-  defstruct []
-  def new(), do: %Client.Random{}
+  def move(nil, _, _),
+    do: Enum.random(0..8)
 end
 
-defimpl Client, for: Client.Random do
-  def move(_client, _name, _game), do: Enum.random(0..8)
-  def scold(_, _, _, _) do end
+
+defmodule Client.Deterministic do
+  use Client
+
+  def init(moves, _) do
+    {:ok, agent} = Agent.start_link(fn -> moves end)
+    agent
+  end
+
+  def move(agent, _, _),
+    do: Agent.get_and_update(agent, fn [move | rest] -> {move, rest} end)
+
 end
+
 
 defmodule Client.Terminal do
-  @behaviour Client.Behavior
+  use Client
 
-  defstruct []
-  def new(), do: %Client.Terminal{}
-end
-
-defimpl Client, for: Client.Terminal do
-  def move(_client, name, game) do
-    Game.State.inspect game
+  def move(nil, name, game) do
+    Board.inspect game.board
     case Regex.run(~r/^(\d)\s+$/, IO.gets "#{name}: ") do
       [_, spot] -> spot |> String.to_integer
       _ -> nil
     end
   end
 
-  def scold(_client, _turn, move, error), do: IO.puts "#{inspect move} #{error}"
+  def ok(nil, game) do
+    Board.inspect game.board
+    IO.puts "waiting for other player"
+  end
+
+  def error(nil, _turn, error),
+    do: IO.puts error
 end
+
 
 defmodule Client.UDP do
-  @behaviour Client.Behavior
-
-  defstruct []
-
-  def new(port \\ 8000) do
-    # the agent stores the requesters PID between crashes
-    {:ok, _} = Supervisor.start_link(
-      [%{id: :client, start: {Client.UDPServer, :start_link, [%{port: port}]}}],
-      strategy: :one_for_one)
-    %Client.UDP{}
-  end
-end
-
-defimpl Client, for: Client.UDP do
+  use Client
   require Logger
 
-  def move(_, _, _) do
-    GenServer.cast Client.UDPServer, {:get, self()}
+  def random_server_name,
+    do: :rand.bytes(16)
+    |> :binary.bin_to_list
+    |> Enum.map(fn x -> rem(x, 95) + 32 end)
+
+  def init(port \\ 8000) do
+    # the agent stores the requesters PID between crashes
+    server_name = random_server_name()
+    {:ok, _} = Supervisor.start_link(
+      [%{id: server_name,
+         start: {Server.UDPServer, :start_link, [%{name: server_name, port: port}]}}],
+      strategy: :one_for_one)
+    server_name
+  end
+
+  def move(server, _, _) do
+    GenServer.cast server, {:get, self()}
     receive do
       [player: _, move: move] ->
         Logger.debug "Client.UDP got #{inspect move}"
         move
     end
   end
-  def scold(_client, _turn, move, error), do: IO.puts "#{inspect move} #{error}"
-end
 
-
-defmodule Client.UDPServer do
-  require Logger
-  use GenServer
-
-  defmodule ServerState do
-    defstruct ~w[requester move]a
-  end
-
-  defp parse_move(data) do
-    case data do
-      <<_::3, p::1, move::4>> ->
-        player = Map.get(%{0 => :x, 1 => :o}, p)
-        [player: player, move: move]
-    end
-  end
-
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
-  end
-
-  def init(%{port: port}) do
-    {:ok, _socket} = :gen_udp.open(port, [:binary, active: true])
-    Logger.info "udp server listening on port #{port}"
-    {:ok, %ServerState{}}
-  end
-
-  def handle_info({:udp, _, _, _, data}, state) do
-    move = apply &parse_move/1, [data]
-    {:noreply,
-     case state do
-       %{requester: nil} -> put_in(state.move, move)
-       %{requester: from} ->
-         send from, move
-         %ServerState{}
-     end
-    }
-  end
-
-  def handle_cast({:get, from}, state) do
-    {:noreply,
-     case state do
-       %{move: nil} -> put_in(state.requester, from)
-       %{move: move} ->
-         send from, move
-         %ServerState{}
-     end
-    }
-  end
 end

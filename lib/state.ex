@@ -5,7 +5,7 @@ defmodule Game.State do
   """
 
   @type player :: :x | :o
-  @type player_list :: [player: Client]
+  @type player_list :: [{Atom, Any}]
 
   @enforce_keys [:players, :current_turn, :board]
   defstruct [:players, :current_turn, :winner, :board, moves: []]

@@ -5,12 +5,24 @@ defmodule Game do
   @type move :: [0..8]
   @type t :: Game.State.t()
 
+  defp init_player(player, name) when is_atom(player) do
+    {player, player.init(nil, name)}
+  end
+
+  defp init_player({player, arg}, name) do
+    {player, player.init(arg, name)}
+  end
+
   @spec new(Game.State.player_list) :: Game.State
-  def new(players), do: %State{players: players,
-                               current_turn: players |> Keyword.keys |> List.first,
-                               winner: nil,
-                               moves: [],
-                               board: Board.new}
+  def new(players) do
+    starter = players |> Keyword.keys |> List.first
+    players = for {name, p} <- players, do: {name, init_player(p, name)}, into: %{}
+    %State{players: players,
+           current_turn: starter,
+           winner: nil,
+           moves: [],
+           board: Board.new}
+  end
 
   @spec play_turn(t, move) :: {:ok, t}, {:end, t} | {:error, String.t()}
   def play_turn(game, move) do
@@ -27,26 +39,30 @@ defmodule Game do
   @spec play(t) :: {:ok, t} | {:error, String.t()}
   def play(game) do
     turn = game.current_turn
-    player = game.players[turn]
     Logger.debug "waiting for move from player #{turn}"
-    case Client.move player, turn, game do
+    {client, state} = game.players[turn]
+    case client.move(state, turn, game) do
 
       move when is_integer(move) ->
         case play_turn game, move do
           {:error, error} ->
             Logger.debug "got unpermitted move #{inspect move} from #{turn}: \"#{error}\""
-            Client.scold player, turn, move, error
+            client.error(state, turn, error)
             play game
           {:ok, game} ->
             Logger.debug "got legal move #{inspect move} from #{turn}"
-            # Board.inspect game.board
+            client.ok(state, game)
             play game
-          {:end, game} -> {:ok, game}
+          {:end, game} ->
+            for {_, {client, state}} <- Map.to_list(game.players) do
+              client.finish(state, game.winner, game)
+            end
+            {:ok, game}
         end
 
       move ->
-        Logger.debug("got illegal move #{inspect move} from #{turn}: #{move}")
-        Client.scold(player, turn, move, "invalid move")
+        Logger.debug("got illegal move #{inspect move} from #{turn}")
+        client.error(state, turn, "invalid move")
         play game
 
     end

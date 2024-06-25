@@ -4,7 +4,7 @@ defmodule TitTacToeTest do
 
   def test_playthrough(%{players: players, winner: winner, board: board}) do
       players = for {name, moves} <- players,
-        do: {name, Client.Deterministic.build(moves)}
+        do: {name, {Client.Deterministic, moves}}
       {:ok, game} = players |> Game.new |> Game.play
       assert winner == game.winner
       board_list = game.board |> Board.to_list(:_)

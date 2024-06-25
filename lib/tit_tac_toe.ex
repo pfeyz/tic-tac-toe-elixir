@@ -17,8 +17,7 @@ defmodule Mix.Tasks.StartGame do
   """
   def run(_) do
     Logger.configure [level: :info]
-    players = [o: %Client.Random{}, x: %Client.Random{}]
-    game = Game.play Game.new(players)
+    game = [o: Client.Random, x: Client.Random] |> Game.new |> Game.play
     case game do
       {:ok, game} -> Game.State.inspect(game)
       {:error, error} -> IO.inspect error
