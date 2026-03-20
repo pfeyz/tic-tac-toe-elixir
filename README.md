@@ -1,21 +1,19 @@
 # TitTacToe
 
-**TODO: Add description**
+A simple tic tac toe game in elixir.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `tit_tac_toe` to your list of dependencies in `mix.exs`:
+To see two random players play against each other, run:
 
-```elixir
-def deps do
-  [
-    {:tit_tac_toe, "~> 0.1.0"}
-  ]
-end
-```
+    mix start_game
+    
+or you can specify two differnet players types to pit against each other, choosing from
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/tit_tac_toe>.
+  - rand: a random move player
+  - term: an interactive player providing moves via the terminal
+  - udp: a player that will send moves via udp packets
+  
+for example, to make player X play via the terminal and player O play via upd:
 
+    mix start_game term udp
