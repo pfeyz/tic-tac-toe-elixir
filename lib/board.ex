@@ -92,7 +92,7 @@ defmodule Board do
     IO.puts ""
     for x <- 0..2 do
       row = for c <- Board.row(board, x) do
-        if c do c else '.' end
+        if c do c else "." end
       end
       IO.puts(Enum.join row, " ")
     end

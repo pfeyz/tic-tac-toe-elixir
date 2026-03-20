@@ -15,9 +15,24 @@ defmodule Mix.Tasks.StartGame do
       :world
 
   """
-  def run(_) do
-    Logger.configure [level: :info]
-    game = [o: Client.Random, x: Client.Random] |> Game.new |> Game.play
+  def run(args) do
+    Logger.configure [level: :debug]
+
+
+    player_map = %{
+      "rand" => Client.Random,
+      "term" => Client.Terminal,
+      "udp"  => Client.UDP
+    }
+
+    args = case args do
+         [] -> ["rand", "rand"]
+         args -> args
+    end
+    
+    [px, po] = Enum.map(args, fn name -> Map.fetch!(player_map, name)  end)
+
+    game = [x: px, o: po] |> Game.new |> Game.play
     case game do
       {:ok, game} -> Game.State.inspect(game)
       {:error, error} -> IO.inspect error
