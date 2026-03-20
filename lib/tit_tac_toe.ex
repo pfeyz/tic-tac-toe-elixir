@@ -3,7 +3,7 @@ defmodule Mix.Tasks.StartGame do
   use Mix.Task
 
   @moduledoc """
-  Documentation for `TitTacToe`.
+  Documentation for `TicTacToe`.
   """
 
   @doc """
@@ -11,7 +11,7 @@ defmodule Mix.Tasks.StartGame do
 
   ## Examples
 
-      iex> TitTacToe.hello()
+      iex> TicTacToe.hello()
       :world
 
   """

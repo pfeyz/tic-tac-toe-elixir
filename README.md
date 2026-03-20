@@ -1,8 +1,6 @@
-# TitTacToe
+# TicTacToe
 
 A simple tic tac toe game in elixir.
-
-## Installation
 
 To see two random players play against each other, run:
 
@@ -14,6 +12,6 @@ or you can specify two differnet players types to pit against each other, choosi
   - term: an interactive player providing moves via the terminal
   - udp: a player that will send moves via udp packets
   
-for example, to make player X play via the terminal and player O play via upd:
+for example, to make player X play via the terminal and player O play via udp:
 
     mix start_game term udp

@@ -1,6 +1,6 @@
-defmodule TitTacToeTest do
+defmodule TicTacToeTest do
   use ExUnit.Case
-  # doctest TitTacToe
+  # doctest TicTacToe
 
   def test_playthrough(%{players: players, winner: winner, board: board}) do
       players = for {name, moves} <- players,
